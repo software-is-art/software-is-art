@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Datastar Edge Worker Demo</title>
+  <style>
+    .container { font-family: sans-serif; max-width: 400px; margin: 2rem auto; text-align: center; }
+    .time { font-size: 2rem; margin: 0.5rem 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Edge Worker Latency Demo</h1>
+    <div>Browser time</div>
+    <div id="browser-time" class="time"></div>
+    <div>Server time</div>
+    <div id="server-time" class="time"></div>
+  </div>
+  <script type="module">
+    import { patch } from "https://cdn.jsdelivr.net/gh/starfederation/datastar@main/bundles/datastar.js";
+
+    const browserEl = document.getElementById('browser-time');
+    function updateBrowserTime() {
+      browserEl.textContent = new Date().toLocaleTimeString();
+    }
+    updateBrowserTime();
+    setInterval(updateBrowserTime, 1000);
+
+    const source = new EventSource('/sse');
+    source.onmessage = (e) => {
+      patch(document, e.data);
+    };
+  </script>
+</body>
+</html>
