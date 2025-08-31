@@ -1,0 +1,6 @@
+def ci(ctx):
+    ctx.actions.run(["buck2", "build", "//:fmt", "//:clippy"])
+    ctx.actions.run(["buck2", "build", "//..."])
+    ctx.actions.run(["buck2", "test", "//..."])
+
+bxl_main = ci

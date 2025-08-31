@@ -1,0 +1,5 @@
+[workspace]
+members = [
+    "crates/infra/datastar-edge-worker",
+]
+resolver = "2"
