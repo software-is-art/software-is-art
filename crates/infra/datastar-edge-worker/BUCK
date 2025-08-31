@@ -1,0 +1,16 @@
+load("@prelude//rust:defs.bzl", "rust_library")
+
+rust_library(
+    name = "datastar_edge_worker",
+    srcs = ["src/lib.rs"],
+    crate = "datastar-edge-worker",
+    edition = "2021",
+    crate_type = ["cdylib"],
+    deps = [
+        "//third-party/rust:worker",
+        "//third-party/rust:datastar",
+        "//third-party/rust:async-stream",
+        "//third-party/rust:futures-util",
+    ],
+    visibility = ["PUBLIC"],
+)
