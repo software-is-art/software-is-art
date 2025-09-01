@@ -31,7 +31,11 @@ async fn streams_datastar_event() {
     }
 
     let status = Command::new("worker-build")
-        .args(["--release", "--no-opt"])
+        .args(["--release", "--no-opt", "--mode", "no-install"])
+        .env("WASM_PACK_NO_ANALYTICS", "1")
+        .env("NODE_TLS_REJECT_UNAUTHORIZED", "0")
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
         .current_dir(manifest_dir)
         .status();
     if status.map(|s| !s.success()).unwrap_or(true) {

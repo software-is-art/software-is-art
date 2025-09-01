@@ -3,32 +3,100 @@
 <head>
   <meta charset="utf-8" />
   <title>Datastar Edge Worker Demo</title>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
+  />
   <style>
-    .container { font-family: sans-serif; max-width: 400px; margin: 2rem auto; text-align: center; }
+    .container { font-family: sans-serif; max-width: 800px; margin: 2rem auto; text-align: center; }
     .time { font-size: 2rem; margin: 0.5rem 0; }
+    #map { height: 300px; margin-top: 1rem; }
   </style>
+  <script type="module" src="https://cdn.jsdelivr.net/gh/starfederation/datastar@main/bundles/datastar.js"></script>
 </head>
-<body>
+<body
+  data-on-load="@get('/sse?id=' + window.clientId)"
+  data-on-datastar-sse="handleSse($event)"
+>
   <div class="container">
     <h1>Edge Worker Latency Demo</h1>
     <div>Browser time</div>
-    <div id="browser-time" class="time"></div>
+    <div
+      id="browser-time"
+      class="time"
+      data-on-load="this.textContent = new Date().toLocaleTimeString()"
+      data-on-interval="this.textContent = new Date().toLocaleTimeString()"
+    ></div>
     <div>Server time</div>
     <div id="server-time" class="time"></div>
+    <div>Latency Histogram</div>
+    <canvas id="latencyHistogram" width="400" height="200"></canvas>
+    <div id="map"></div>
   </div>
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
   <script type="module">
-    import { patch } from "https://cdn.jsdelivr.net/gh/starfederation/datastar@main/bundles/datastar.js";
+    window.clientId = crypto.randomUUID();
+    const start = performance.now();
+    let reported = false;
 
-    const browserEl = document.getElementById('browser-time');
-    function updateBrowserTime() {
-      browserEl.textContent = new Date().toLocaleTimeString();
+    const canvas = document.getElementById('latencyHistogram');
+    const ctx = canvas.getContext('2d');
+
+    function updateHistogram(latencies) {
+      const binSize = 50;
+      const bins = new Array(10).fill(0);
+      latencies.forEach((l) => {
+        const idx = Math.min(Math.floor(l / binSize), bins.length - 1);
+        bins[idx]++;
+      });
+      const width = canvas.width;
+      const height = canvas.height;
+      ctx.clearRect(0, 0, width, height);
+      const max = Math.max(...bins, 1);
+      const barWidth = width / bins.length;
+      bins.forEach((count, i) => {
+        const barHeight = (count / max) * (height - 20);
+        ctx.fillStyle = '#4B9CD3';
+        ctx.fillRect(i * barWidth, height - barHeight, barWidth - 2, barHeight);
+        ctx.fillStyle = '#000';
+        ctx.font = '10px sans-serif';
+        ctx.fillText(`${i * binSize}-${i * binSize + binSize - 1}`, i * barWidth + 2, height - 5);
+      });
     }
-    updateBrowserTime();
-    setInterval(updateBrowserTime, 1000);
 
-    const source = new EventSource('/sse');
-    source.onmessage = (e) => {
-      patch(document, e.data);
+    const map = L.map('map').setView([0, 0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '© OpenStreetMap',
+    }).addTo(map);
+    let markers = {};
+    function updateMap(clients) {
+      Object.values(markers).forEach((m) => m.remove());
+      markers = {};
+      clients.forEach((c) => {
+        const m = L.circleMarker([c.lat, c.lon], { radius: 6 })
+          .addTo(map)
+          .bindPopup(`Latency: ${c.latency.toFixed(0)} ms`);
+        markers[c.id] = m;
+      });
+    }
+
+    window.handleSse = (e) => {
+      const { type, argsRaw } = e.detail;
+      if (type === 'stats') {
+        const data = JSON.parse(argsRaw.data || '{}');
+        updateHistogram(data.latencies);
+        updateMap(data.clients);
+        if (!reported) {
+          const latency = performance.now() - start;
+          fetch('/latency', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ id: window.clientId, latency }),
+          });
+          reported = true;
+        }
+      }
     };
   </script>
 </body>
