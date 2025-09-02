@@ -1,0 +1,24 @@
+def release(ctx):
+    """Build and deploy Workers based on domains.json."""
+    domains = ctx.read_json("tools/domains.json")
+    for module in domains["modules"].keys():
+        ctx.actions.run(["echo", f"Building {module}"])
+        for env in domains["envs"]:
+            ctx.actions.run([
+                "wrangler",
+                "versions",
+                "upload",
+                "--env",
+                env,
+                f"workers/{module}"
+            ])
+            ctx.actions.run([
+                "node",
+                "tools/wrangler/ensure_triggers.ts",
+                "--module",
+                module,
+                "--env",
+                env
+            ])
+
+bxl_main = release

@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "api-worker",
+  "main": "dist/worker.mjs",
+  "compatibility_date": "2025-08-31",
+  "environments": {
+    "prod": {
+      "routes": [
+        { "pattern": "api.example.com/*", "zone_name": "example.com" }
+      ]
+    },
+    "staging": {
+      "routes": [
+        { "pattern": "api-staging.example.com/*", "zone_name": "example.com" }
+      ]
+    },
+    "dev": {
+      "routes": [
+        { "pattern": "api-dev.example.com/*", "zone_name": "example.com" }
+      ]
+    }
+  }
+}

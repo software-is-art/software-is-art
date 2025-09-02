@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["zone", "envs", "modules"],
+  "properties": {
+    "zone": { "type": "string" },
+    "envs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "modules": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": { "type": "string" }
+      }
+    }
+  }
+}

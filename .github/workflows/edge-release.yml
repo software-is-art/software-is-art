@@ -1,0 +1,43 @@
+name: edge-release
+
+on:
+  pull_request: {}
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  pr-or-main:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Buck2
+        run: curl -fsSL https://buck2.build/install.sh | bash
+
+      - name: Build changed Workers & stage versions
+        run: |
+          buck2 bxl //tools:release.bxl -- build-and-upload \
+            --domains tools/domains.json
+
+      - name: Apply triggers (Routes/Custom Domains)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: node tools/wrangler/ensure_triggers.ts --domains tools/domains.json
+
+      - name: Comment PR with Preview URLs
+        if: github.event_name == 'pull_request'
+        run: node tools/wrangler/ensure_triggers.ts --comment-pr buck-out/release/manifest.json
+
+  promote:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: npx wrangler versions deploy --gradual
