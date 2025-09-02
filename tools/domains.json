@@ -1,0 +1,16 @@
+{
+  "zone": "example.com",
+  "envs": ["prod", "staging", "dev"],
+  "modules": {
+    "api": {
+      "prod": "api.example.com",
+      "staging": "api-staging.example.com",
+      "dev": "api-dev.example.com"
+    },
+    "app": {
+      "prod": "app.example.com",
+      "staging": "app-staging.example.com",
+      "dev": "app-dev.example.com"
+    }
+  }
+}
